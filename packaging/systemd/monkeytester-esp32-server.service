@@ -25,7 +25,7 @@ ExecStart=/usr/bin/env nix run .
 #Environment=PLUGIN_TOKEN=<openssl rand -hex 32>
 # Extra directories `flash` may read firmware from (default: this checkout,
 # the upload dir and /nix/store):
-#Environment=ESP32_FIRMWARE_ROOTS=%h/Workspace/Esp32-Server
+#Environment=ESP32_FIRMWARE_ROOTS=%h/Workspace/server-firmware
 # The fake server (:8092) stays on 0.0.0.0 by design (ESP32_FAKE_HUB_BIND): the
 # real sensor board reaches it over Wi-Fi. It has no file/flash/subprocess access.
 Restart=on-failure

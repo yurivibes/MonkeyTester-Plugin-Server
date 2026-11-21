@@ -1,5 +1,5 @@
 {
-  description = "MonkeyTester-Plugin-Esp32-Server: MonkeyTester device plugin for the ESP32 server (hub) boards + the fake software server";
+  description = "MonkeyTester-Plugin-Server: MonkeyTester device plugin for the ESP32 server (hub) boards + the fake software server";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";

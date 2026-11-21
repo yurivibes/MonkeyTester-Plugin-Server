@@ -1,6 +1,6 @@
 """Security hardening tests: bind/token policy, request caps, path traversal,
-upload limits and input validators. Shared VERBATIM by MonkeyTester-Plugin-Esp32-Sensor
-and MonkeyTester-Plugin-Esp32-Server (both plugins must accept/refuse the same things).
+upload limits and input validators. Shared VERBATIM by MonkeyTester-Plugin-Esp32
+and MonkeyTester-Plugin-Server (both plugins must accept/refuse the same things).
 
 No hardware: boards are tests/fake_board.py; the startup tests run
 esp32_plugin.py with ESP32_PORTS pointing at a path that doesn't exist.
