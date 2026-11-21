@@ -1,4 +1,4 @@
-# MonkeyTester-Plugin-Esp32-Server
+# MonkeyTester-Plugin-Server
 
 The `esp32-server` device plugin for
 [MonkeyTester](https://github.com/yurivibes/MonkeyTester). It owns
@@ -8,12 +8,12 @@ software server**: a software hub (HTTP API on :8092, registry, history, rule
 language, mDNS `tshub-fake`) while no hub board is attached, so app tests don't
 need a second board.
 
-The **server firmware** is product code and lives in [Esp32-Server](http://192.168.125.70:3000/yurivibes/Esp32-Server); its `-test`
+The **server firmware** is product code and lives in its own repo, not here; its `-test`
 builds include VT control. Build it there and flash the `result/` into a board
 with this plugin's `flash` action.
 
 The `role: sensor` boards belong to the sibling
-[MonkeyTester-Plugin-Esp32-Sensor](https://github.com/yurivibes/MonkeyTester-Plugin-Esp32)
+[MonkeyTester-Plugin-Esp32](https://github.com/yurivibes/MonkeyTester-Plugin-Esp32)
 plugin (`esp32-sensor`, :8091), never to this one: a node that answers
 `status` with the sensor role is probed, dropped and its console lock
 released, so the other plugin adopts it; the shared role cache keeps this
@@ -25,7 +25,7 @@ MonkeyTester reaches it only through the shared **Device Plugin API**
 (`PLUGIN_API.md` in the MonkeyTester repo). Boards are driven over their serial
 console with the **VT control protocol** (`docs/vt-control.md`), which the
 firmware's `…-test` builds include; the server protocol is
-`docs/server-protocol.md` in Esp32-Server.
+`docs/server-protocol.md` in the server firmware.
 
 ```
 MonkeyTester ──HTTP (plugin API)──► esp32_plugin.py :8093 (Linux or macOS)
@@ -232,9 +232,9 @@ In short:
   or `server` (the default) resolves to the one hub board, or the fake when none
   is attached; `device=sensor` is answered with `wrong_plugin`.
 - **flash** takes a prebuilt ESP-IDF build directory — e.g. the `result/` of
-  `nix build .#firmware-c3-release-test` in Esp32-Server.
+  `nix build .#firmware-c3-release-test` in the server firmware.
 - **expect** is a relay on a board (the rule language belongs to the firmware,
-  Esp32-Server `docs/server-protocol.md` + `docs/vt-control.md`); on the fake
+  its `docs/server-protocol.md` + `docs/vt-control.md`); on the fake
   server the plugin applies the hub rule language itself.
 - **forget** makes the server (real or fake) drop one sensor from its registry
   and history, like `DELETE /devices/<mac>`.

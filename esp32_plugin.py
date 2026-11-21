@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""MonkeyTester-Plugin-Esp32-Server: the `esp32-server` device plugin for MonkeyTester.
+"""MonkeyTester-Plugin-Server: the `esp32-server` device plugin for MonkeyTester.
 
 Owns the `role: hub` ESP32 boards attached to this host — the project's "server"
 boards — and runs the fake software server: a software hub (HTTP API on :8092,
 registry, history, rule language, mDNS `tshub-fake`) while no hub board is
 attached. The `role: sensor` boards belong to the sibling esp32-sensor plugin
-(MonkeyTester-Plugin-Esp32-Sensor), never to this one: a node that answers `status`
+(MonkeyTester-Plugin-Esp32), never to this one: a node that answers `status`
 with the sensor role is probed, dropped and its console lock released, so the
 other plugin adopts it; the shared role cache lets this plugin skip such a node
 without touching it again. Actions are listed in ACTIONS.md.
@@ -883,7 +883,7 @@ class Esp32Plugin(Plugin):
                    "Apply changes to how the device answers the app: each line of `script` is "
                    "sent as a rule, on top of the rules already loaded (state only what "
                    "changes; `<METHOD> <path> -> normal` undoes one rule, `clear` undoes all). "
-                   "The rule language is the firmware's (Esp32-Sensor "
+                   "The rule language is the firmware's (sensor firmware "
                    "docs/vt-control.md, hub-protocol.md section 6): HTTP rules go to "
                    "device=hub (the fake hub applies them itself), `report`/`temp`/`wifi` "
                    "directives to the sensor. Blank and # lines are skipped. Stops at the "

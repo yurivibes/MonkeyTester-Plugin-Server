@@ -1,4 +1,4 @@
-# Security — MonkeyTester-Plugin-Esp32-Server
+# Security — MonkeyTester-Plugin-Server
 
 This is the `esp32-server` device plugin for MonkeyTester. This page says what it
 protects, how, and what it does not. It makes **no "zero vulnerabilities"
@@ -25,10 +25,10 @@ intended setting.
 | Plugin API | :8093 | `127.0.0.1` | `X-Plugin-Token` (mandatory off loopback) |
 | Fake hub (hub protocol) | :8092 | `0.0.0.0` (by design) | none, like the firmware |
 
-**The defaults are identical in MonkeyTester-Plugin-Esp32-Sensor and
-MonkeyTester-Plugin-Esp32-Server** (same `PLUGIN_BIND` default, same token rule, same
+**The defaults are identical in MonkeyTester-Plugin-Esp32 and
+MonkeyTester-Plugin-Server** (same `PLUGIN_BIND` default, same token rule, same
 limits; `security.py` and `plugin_server.py` are byte-identical in both repos).
-The sibling plugin is MonkeyTester-Plugin-Esp32-Sensor (`esp32-sensor`, :8091).
+The sibling plugin is MonkeyTester-Plugin-Esp32 (`esp32-sensor`, :8091).
 
 ## Token setup
 
@@ -146,6 +146,6 @@ directory.
 
 ## Reporting a problem
 
-This is a single-user home-lab project. Open an issue on the Gitea repo
-(`yurivibes/MonkeyTester-Plugin-Esp32-Server`) or tell the maintainer directly; don't
+This is a single-user home-lab project. Open an issue on the GitHub repo
+(`https://github.com/yurivibes/MonkeyTester-Plugin-Server/issues`) or tell the maintainer directly; don't
 post working tokens in the issue.

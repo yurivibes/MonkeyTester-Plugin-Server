@@ -1,7 +1,7 @@
 """An in-memory stand-in for a serial port with VT-control firmware behind it.
 
 FakeSerial looks enough like pyserial's Serial for board.Board; the firmware side
-answers the VT control protocol (Esp32-Sensor docs/vt-control.md) and prints
+answers the VT control protocol (the sensor firmware's docs/vt-control.md) and prints
 the `@vt - ready` line on boot.
 
 A USJ FakeSerial (kind `usb-serial-jtag`, or a ttyACM-style name) stands for a
@@ -24,7 +24,7 @@ class FakeFirmware:
     """role: None = sensor firmware from before roles (HTTP rules, no `role` in
     its status); "sensor" = the hub-era sensor (no HTTP server: HTTP rules are
     rejected; `report`/`temp` directives); "hub" = the hub board
-    (Esp32-Server docs/hub-protocol.md section 6)."""
+    (the server firmware's docs/hub-protocol.md section 6)."""
 
     def __init__(self, mac="7c:df:a1:a4:8f:44", vt=True, boot_delay=0.05,
                  ready_on_boot=True, transport="softap", role=None):
