@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- macOS LaunchAgent, esp32-server plugin: owns the `role: hub` boards ("server"
+     boards) and runs the fake software server. Replace CHECKOUT_DIR and PYTHON
+     (a python with pyserial, esptool and zeroconf), copy to ~/Library/LaunchAgents/,
+     then:
+     launchctl load ~/Library/LaunchAgents/com.blackjackfruit.monkeytester-esp32-server.plist
+     Run the esp32-sensor LaunchAgent alongside; the two plugins split the
+     boards by role and share the console locks and the role cache (files
+     under /tmp by default: /tmp/vt-esp32-locks, /tmp/vt-esp32-roles.json). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.blackjackfruit.monkeytester-esp32-server</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>PYTHON</string>
+    <string>CHECKOUT_DIR/esp32_plugin.py</string>
+  </array>
+  <key>WorkingDirectory</key><string>CHECKOUT_DIR</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PLUGIN_PORT</key><string>8093</string>
+    <!-- The API listens on 127.0.0.1 by default. For LAN access set BOTH
+         PLUGIN_BIND and PLUGIN_TOKEN (>= 16 chars, e.g. `openssl rand -hex 32`);
+         without the token the plugin refuses to start. See SECURITY.md.
+    <key>PLUGIN_BIND</key><string>0.0.0.0</string>
+    <key>PLUGIN_TOKEN</key><string>TOKEN</string>
+    -->
+    <key>PATH</key><string>CHECKOUT_DIR/.venv/bin:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/monkeytester-esp32-server.log</string>
+  <key>StandardErrorPath</key><string>/tmp/monkeytester-esp32-server.log</string>
+</dict>
+</plist>
