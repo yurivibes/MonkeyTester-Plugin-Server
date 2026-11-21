@@ -1,4 +1,4 @@
-# MonkeyTester-Esp32-Server — Agent Guide
+# MonkeyTester-Plugin-Esp32-Server — Agent Guide
 
 ## Purpose
 The `esp32-server` device plugin for MonkeyTester: owns the `role: hub`
