@@ -1,11 +1,11 @@
-# MonkeyTester-Plugin-Esp32-Server — Agent Guide
+# MonkeyTester-Plugin-Server — Agent Guide
 
 ## Purpose
 The `esp32-server` device plugin for MonkeyTester: owns the `role: hub`
 ("server") ESP32 boards on its host, flashes prebuilt firmware, drives them
 over the VT control serial protocol, and runs the fake software server (:8092,
 mDNS `tshub-fake`) while no hub board is attached. The server FIRMWARE is
-product code in Esp32-Server, not here. The sibling esp32-sensor plugin
+product code in its own repo, not here. The sibling esp32-sensor plugin
 owns the sensor boards. See README.md.
 
 ## Setup (do this first)
@@ -29,7 +29,7 @@ anything; that section is the single source for them. In short:
   job states or fields here without changing that document first (and bumping
   `contract_version` for breaking changes).
 - **The device protocol is owned by the firmware.** Board commands and the rule
-  language follow `docs/server-protocol.md` and `docs/vt-control.md` in Esp32-Server.
+  language follow `docs/server-protocol.md` and `docs/vt-control.md` in the server firmware.
   For boards, `expect` relays rule lines without interpreting them; don't add
   parsing or validation of board rules in the plugin.
 - **Sensor boards are never ours.** A node that answers `status` with `role: sensor`

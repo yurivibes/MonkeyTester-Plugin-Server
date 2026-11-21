@@ -7,7 +7,7 @@ parameter schemas.
 ## Devices and roles
 
 This plugin owns the **`role: hub`** boards — the project calls them "server"
-boards (`docs/server-protocol.md` in Esp32-Server; the firmware's status field
+boards (`docs/server-protocol.md` in the server firmware; the firmware's status field
 says `hub`, which stays the wire value and `server` is only a `device=` alias).
 Sensor boards belong to the esp32-sensor plugin: a node that answers `status`
 with `role: sensor` (or one that never answers VT control at all, which counts
@@ -50,7 +50,7 @@ nothing there.
 ## The fake server
 
 When no hub board is attached, the plugin runs the server in software so app
-tests don't need a board. It implements Esp32-Server's `docs/server-protocol.md`
+tests don't need a board. It implements the server firmware's `docs/server-protocol.md`
 sections 1-4 and the server rule language from `docs/vt-control.md`, on the
 plugin's host:
 
@@ -84,7 +84,7 @@ Tests don't change between the fake server and a real hub board.
 
 | Action | Params | Passes when | Default timeout |
 |---|---|---|---|
-| `flash` | `firmware_dir` (path, required — e.g. `result/` of `nix build .#firmware-c3-release-test` in Esp32-Server; must be under `ESP32_FIRMWARE_ROOT`/`ESP32_FIRMWARE_ROOTS`/`/nix/store`, or `upload:<id>`, anything else is a 400, see SECURITY.md), `erase` (bool, false), `wait_ready` (bool, true), `baud` (int; ignored on a native port) | esptool succeeds and, with `wait_ready`, the board prints `@vt - ready` (or answers `status`) after reboot | 180 s |
+| `flash` | `firmware_dir` (path, required — e.g. `result/` of `nix build .#firmware-c3-release-test` in the server firmware; must be under `ESP32_FIRMWARE_ROOT`/`ESP32_FIRMWARE_ROOTS`/`/nix/store`, or `upload:<id>`, anything else is a 400, see SECURITY.md), `erase` (bool, false), `wait_ready` (bool, true), `baud` (int; ignored on a native port) | esptool succeeds and, with `wait_ready`, the board prints `@vt - ready` (or answers `status`) after reboot | 180 s |
 | `reset` | `wait_ready` (bool, true) | The board reboots — EN is pulsed through the adapter's RTS pin on a `uart-bridge` port, esptool's own hard reset on a native `usb-serial-jtag` one — and prints `@vt - ready`. A reboot drops every rule | 30 s |
 | `factory-reset` | — | The board forgets its build-time network state, reboots, and comes back ready with no rules (the fake server: registry, history and rules erased) | 30 s |
 | `expect` | `script` (string, required; the test's inline block) | The device accepted every rule line | 30 s |
@@ -126,7 +126,7 @@ The test's inline block states **only what changes** in how the device answers
 the app. Everything not mentioned stays as it was. On a hub board the plugin
 doesn't interpret the rules: blank and `#` lines are dropped and each line goes
 out as `rule <line>` over the VT control protocol; the rule language belongs to
-the firmware (Esp32-Server `docs/server-protocol.md`, `docs/vt-control.md`: HTTP
+the firmware (its `docs/server-protocol.md`, `docs/vt-control.md`: HTTP
 responses with a status and body, `hang`, `delay`, `sequence`, `normal` to undo
 one rule). On the fake server the plugin applies the same rule language itself
 (`<METHOD> <path> -> <status> [<body>]`, `hang`, `delay <ms> <status> [<body>]`,

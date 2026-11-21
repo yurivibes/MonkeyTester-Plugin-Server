@@ -1,7 +1,7 @@
-"""The fake hub: a software Esp32-Server run by the plugin.
+"""The fake hub: a software version of the server firmware, run by the plugin.
 
 When no hub board (`role: hub`) is attached, `device=hub` resolves to this
-object. It implements the hub protocol (Esp32-Server
+object. It implements the hub protocol (the server firmware's
 docs/hub-protocol.md) sections 1-4 -- mDNS advertisement, `POST /report`, the
 registry/history and the app API -- plus the hub's rule language from
 section 6, so a test runs unchanged against the fake and a real hub.
