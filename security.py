@@ -1,7 +1,7 @@
 """Bind/token policy and request-input validators for the ESP32 device plugins.
 
-This file is shared VERBATIM by MonkeyTester-Esp32-Sensor and
-MonkeyTester-Esp32-Server: the two plugins run side by side on one host and
+This file is shared VERBATIM by MonkeyTester-Plugin-Esp32-Sensor and
+MonkeyTester-Plugin-Esp32-Server: the two plugins run side by side on one host and
 must refuse/accept exactly the same things. Change both copies together.
 
 See SECURITY.md for the threat model. Standard library only.
