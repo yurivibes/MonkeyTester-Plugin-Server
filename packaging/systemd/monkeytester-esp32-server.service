@@ -1,0 +1,35 @@
+# User unit (Linux), esp32-server plugin: owns the `role: hub` boards ("server"
+# boards) and runs the fake software server (:8093 plugin, fake server :8092).
+# Install:
+#   cp packaging/systemd/monkeytester-esp32-server.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now monkeytester-esp32-server
+# Edit WorkingDirectory to this checkout. The user must be in the `dialout`
+# group. Run the esp32-sensor unit alongside this one; the two plugins split
+# the boards by role and share the console locks (ESP32_LOCK_DIR, default
+# /tmp/vt-esp32-locks) and the role cache (ESP32_ROLE_CACHE, default
+# /tmp/vt-esp32-roles.json).
+[Unit]
+Description=MonkeyTester esp32-server device plugin (:8093, fake server :8092)
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/Workspace/MonkeyTester-Esp32-Server
+ExecStart=/usr/bin/env nix run .
+# Network access (SECURITY.md): the plugin API listens on 127.0.0.1 by default,
+# which is what the viewer on this host uses (http://127.0.0.1:8093). To expose it
+# on the LAN, set BOTH lines below; without a token (>= 16 chars) the plugin
+# refuses to start on a non-loopback address. Prefer a drop-in
+# (systemctl --user edit monkeytester-esp32-server) so the token stays out of
+# this file, and enter the same token in the viewer's Settings.
+#Environment=PLUGIN_BIND=0.0.0.0
+#Environment=PLUGIN_TOKEN=<openssl rand -hex 32>
+# Extra directories `flash` may read firmware from (default: this checkout,
+# the upload dir and /nix/store):
+#Environment=ESP32_FIRMWARE_ROOTS=%h/Workspace/Esp32-Server
+# The fake server (:8092) stays on 0.0.0.0 by design (ESP32_FAKE_HUB_BIND): the
+# real sensor board reaches it over Wi-Fi. It has no file/flash/subprocess access.
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
