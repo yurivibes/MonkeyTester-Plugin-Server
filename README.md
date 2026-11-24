@@ -1,7 +1,7 @@
 # MonkeyTester-Plugin-Server
 
 The `esp32-server` device plugin for
-[MonkeyTester](https://github.com/yurivibes/MonkeyTester). It owns
+MonkeyTester. It owns
 the **`role: hub`** ESP32 boards plugged into its host — the project's "server"
 boards — drives them over the VT control serial protocol, and runs the **fake
 software server**: a software hub (HTTP API on :8092, registry, history, rule
@@ -13,7 +13,7 @@ builds include VT control. Build it there and flash the `result/` into a board
 with this plugin's `flash` action.
 
 The `role: sensor` boards belong to the sibling
-[MonkeyTester-Plugin-Esp32](https://github.com/yurivibes/MonkeyTester-Plugin-Esp32)
+MonkeyTester-Plugin-Esp32
 plugin (`esp32-sensor`, :8091), never to this one: a node that answers
 `status` with the sensor role is probed, dropped and its console lock
 released, so the other plugin adopts it; the shared role cache keeps this
@@ -45,7 +45,7 @@ MonkeyTester ──HTTP (plugin API)──► esp32_plugin.py :8093 (Linux or ma
 | Membership of the `dialout` group | opening `/dev/ttyUSB*` / `/dev/ttyACM*` | on Linux |
 
 ```bash
-git clone https://github.com/yurivibes/MonkeyTester-Plugin-Server.git ~/Workspace/MonkeyTester-Esp32-Server
+git clone <repo-url> ~/Workspace/MonkeyTester-Esp32-Server
 cd ~/Workspace/MonkeyTester-Esp32-Server
 ```
 
