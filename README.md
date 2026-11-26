@@ -154,6 +154,19 @@ when set, enforced the same way. The viewer keeps each plugin's token in
 viewer's `PLUGIN_TOKEN` / `MT_PLUGIN_TOKEN_<NAME>` environment). There is no
 TLS: use a VPN or Tailscale to reach the plugin across untrusted networks.
 
+### Documentation page
+
+`GET /docs` serves this README rendered as a self-contained HTML page
+(`text/html`, a strict `Content-Security-Policy`, `Cache-Control: no-store`). It
+needs the token like every route except `/health`. `GET /health` reports
+`"docs": "/docs"` while README.md is readable next to `plugin_server.py`, and
+leaves the field out otherwise (`/docs` then answers 404). The viewer's
+**/plugins** page shows a **Documentation** link for a plugin that reports
+`docs` and fetches the page itself, through its `/plugins/docs/esp32-server`
+route with the saved token, so the browser never talks to the plugin. Try it
+with `curl -s localhost:8093/docs`. `nix run` and the systemd/launchd units
+run from the repo source, so README.md always ships with them.
+
 The fake server (:8092) is the exception: it keeps listening on every interface
 (`ESP32_FAKE_HUB_BIND`, default `0.0.0.0`) because the real sensor board and the
 phone reach it over Wi-Fi, just like a real server board. It speaks only the hub
@@ -249,6 +262,7 @@ itself couldn't do it (bad firmware dir, esptool failure, port gone).
 | File | What |
 |---|---|
 | `plugin_server.py` | The generic plugin API server: jobs, long-poll waits, events, uploads. No ESP32 code. |
+| `docs_page.py` | Renders README.md into the `GET /docs` HTML page. Shared verbatim by every MonkeyTester plugin; don't edit the copy here. |
 | `security.py` | Bind/token policy and request-input validators (MAC, serial port, job/upload ids, contained paths); identical in both ESP32 plugin repos. See [SECURITY.md](SECURITY.md). |
 | `esp32_plugin.py` | Board discovery, role ownership, actions, flashing, the fake server, `main()` |
 | `fake_hub.py` | The fake server: hub HTTP API, registry/history, rule language, mDNS |

@@ -10,6 +10,7 @@ import tempfile
 import threading
 import time
 import unittest
+import unittest.mock
 import urllib.error
 import urllib.request
 import zipfile
@@ -24,6 +25,7 @@ import esp32_plugin  # noqa: E402
 from esp32_plugin import Esp32Plugin  # noqa: E402
 from fake_board import FakeFirmware, FakeSerial, SENSOR_NO_HTTP, UsjNodes  # noqa: E402
 from board import port_kind  # noqa: E402
+import plugin_server  # noqa: E402
 from plugin_server import PluginServer  # noqa: E402
 
 TERMINAL = {"passed", "failed", "timeout", "error", "cancelled"}
@@ -291,6 +293,63 @@ class TokenTests(unittest.TestCase):
             self.assertEqual(code, 200)
         finally:
             h.close()
+
+
+class DocsTests(unittest.TestCase):
+    """GET /docs renders README.md; /health advertises it only when readable."""
+
+    def fetch(self, h, path, headers=None):
+        req = urllib.request.Request(h.base + path, headers=dict(headers or {}))
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.status, r.headers, r.read()
+        except urllib.error.HTTPError as e:
+            return e.code, e.headers, e.read()
+
+    def test_docs_page(self):
+        h = Harness()
+        self.addCleanup(h.close)
+        code, headers, body = self.fetch(h, "/docs")
+        self.assertEqual(code, 200)
+        self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
+        self.assertEqual(headers["Content-Security-Policy"],
+                         "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; "
+                         "form-action 'none'; frame-ancestors 'none'")
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        page = body.decode("utf-8")
+        self.assertIn('<h1 id="monkeytester-plugin-server">MonkeyTester-Plugin-Server</h1>', page)
+        self.assertIn("esp32-server", page)
+
+    def test_health_advertises_docs(self):
+        h = Harness()
+        self.addCleanup(h.close)
+        code, r = h.call("GET", "/health")
+        self.assertEqual((code, r["docs"]), (200, "/docs"))
+
+    def test_missing_readme(self):
+        h = Harness()
+        self.addCleanup(h.close)
+        missing = os.path.join(tempfile.mkdtemp(), "README.md")
+        with unittest.mock.patch.object(plugin_server, "README_PATH", missing):
+            code, r = h.call("GET", "/health")
+            self.assertEqual(code, 200)
+            self.assertNotIn("docs", r)
+            code, r = h.call("GET", "/docs")
+            self.assertEqual((code, r["code"]), (404, "not_found"))
+
+    def test_docs_needs_token(self):
+        h = Harness(token="s3cret-docs-token")
+        self.addCleanup(h.close)
+        for headers in ({}, {"X-Plugin-Token": "wrong"}):
+            code, _, body = self.fetch(h, "/docs", headers)
+            self.assertEqual((code, json.loads(body)["code"]), (401, "unauthorized"))
+        code, headers, _ = self.fetch(h, "/docs", {"X-Plugin-Token": "s3cret-docs-token"})
+        self.assertEqual(code, 200)
+        self.assertTrue(headers["Content-Type"].startswith("text/html"))
+        # /health stays open and still advertises the (token-protected) page
+        code, r = h.call("GET", "/health", headers={"X-Plugin-Token": "wrong"})
+        self.assertEqual((code, r["docs"]), (200, "/docs"))
 
 
 class ActionTests(unittest.TestCase):

@@ -31,6 +31,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import security
+from docs_page import docs_html
 
 CONTRACT = "monkeytester-plugin"
 CONTRACT_VERSION = 1
@@ -48,6 +49,17 @@ MAX_UPLOAD_ENTRIES = 2000
 UPLOAD_EXTENSIONS = (".bin", ".json")
 MAX_TIMEOUT_MS = 60 * 60 * 1000
 HANDLER_SOCKET_TIMEOUT_S = 30
+
+# GET /docs renders this file at request time (resolved next to this module, not
+# the CWD). /health advertises "docs" only while it is readable.
+README_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "README.md")
+DOCS_PATH = "/docs"
+DOCS_CSP = ("default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; "
+            "form-action 'none'; frame-ancestors 'none'")
+
+
+def readme_available() -> bool:
+    return os.path.isfile(README_PATH) and os.access(README_PATH, os.R_OK)
 
 
 def now_ms() -> int:
@@ -724,10 +736,14 @@ def make_handler(plugin: Plugin, jobs: JobManager, token: str | None):
                     "capabilities": list(plugin.capabilities),
                     "error": plugin.device_error(),
                 }
+                if readme_available():
+                    body["docs"] = DOCS_PATH
                 if self._authorized():
                     body["host"] = {"os": platform.system().lower(),
                                     "hostname": socket.gethostname()}
                 return self._send(200, body)
+            if method == "GET" and parts == ["docs"]:
+                return self._docs()
             if method == "GET" and parts == ["devices"]:
                 return self._send(200, {"devices": plugin.devices(),
                                         "error": plugin.device_error()})
@@ -757,6 +773,23 @@ def make_handler(plugin: Plugin, jobs: JobManager, token: str | None):
                 ref, path = plugin.uploads.store_zip(self._body(MAX_UPLOAD_BYTES))
                 return self._send(201, {"upload": ref, "path": path})
             raise HttpError(404, "not_found", f"no route for {method} {self.path}")
+
+        def _docs(self):
+            # Authenticated like every route but /health (see _dispatch).
+            try:
+                with open(README_PATH, encoding="utf-8") as f:
+                    text = f.read()
+            except (OSError, UnicodeDecodeError):
+                raise HttpError(404, "not_found", "no documentation (README.md missing)") from None
+            body = docs_html(plugin.name, text, plugin.version)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Security-Policy", DOCS_CSP)
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
 
         def _events(self, query):
             device = query.get("device")
