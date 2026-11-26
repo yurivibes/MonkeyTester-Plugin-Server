@@ -7,7 +7,7 @@
      launchctl load ~/Library/LaunchAgents/com.blackjackfruit.monkeytester-esp32-server.plist
      Run the esp32-sensor LaunchAgent alongside; the two plugins split the
      boards by role and share the console locks and the role cache (files
-     under /tmp by default: /tmp/vt-esp32-locks, /tmp/vt-esp32-roles.json). -->
+     under /tmp by default: /tmp/mt-esp32-locks, /tmp/mt-esp32-roles.json). -->
 <plist version="1.0">
 <dict>
   <key>Label</key><string>com.blackjackfruit.monkeytester-esp32-server</string>

@@ -3,13 +3,13 @@
 The `esp32-server` device plugin for
 MonkeyTester. It owns
 the **`role: hub`** ESP32 boards plugged into its host — the project's "server"
-boards — drives them over the VT control serial protocol, and runs the **fake
+boards — drives them over the MT control serial protocol, and runs the **fake
 software server**: a software hub (HTTP API on :8092, registry, history, rule
 language, mDNS `tshub-fake`) while no hub board is attached, so app tests don't
 need a second board.
 
 The **server firmware** is product code and lives in its own repo, not here; its `-test`
-builds include VT control. Build it there and flash the `result/` into a board
+builds include MT control. Build it there and flash the `result/` into a board
 with this plugin's `flash` action.
 
 The `role: sensor` boards belong to the sibling
@@ -23,14 +23,14 @@ the same serial console.
 
 MonkeyTester reaches it only through the shared **Device Plugin API**
 (`PLUGIN_API.md` in the MonkeyTester repo). Boards are driven over their serial
-console with the **VT control protocol** (`docs/vt-control.md`), which the
+console with the **MT control protocol** (`docs/mt-control.md`), which the
 firmware's `…-test` builds include; the server protocol is
 `docs/server-protocol.md` in the server firmware.
 
 ```
 MonkeyTester ──HTTP (plugin API)──► esp32_plugin.py :8093 (Linux or macOS)
                                      ├── esptool ───────────► flash
-                                     ├── serial (VT control) ► ESP32 server boards
+                                     ├── serial (MT control) ► ESP32 server boards
                                      └── fake server :8092 + mDNS tshub-fake (no server board attached)
 ```
 
@@ -128,8 +128,8 @@ the LAN (phones and real sensors connect to it): open TCP 8092 and mDNS (UDP
 | `ESP32_FAKE_HUB_ADDR` | default-route IPv4 | the address advertised over mDNS and reported as the server's `ip` |
 
 Every environment variable is listed at the top of `esp32_plugin.py`, including
-`ESP32_LOCK_DIR` (default `/tmp/vt-esp32-locks`) and `ESP32_ROLE_CACHE`
-(default `/tmp/vt-esp32-roles.json`) — the board-ownership files **shared**
+`ESP32_LOCK_DIR` (default `/tmp/mt-esp32-locks`) and `ESP32_ROLE_CACHE`
+(default `/tmp/mt-esp32-roles.json`) — the board-ownership files **shared**
 with the esp32-sensor plugin: keep both plugins' settings of them in sync.
 
 ### Network access and the token
@@ -151,7 +151,7 @@ With a token set, every request except `GET /health` needs the
 `X-Plugin-Token` header (401 otherwise); on loopback the token is optional and,
 when set, enforced the same way. The viewer keeps each plugin's token in
 **Settings → Device Plugins** (MonkeyTester PR in progress; until it lands, the
-viewer's `PLUGIN_TOKEN` / `VT_PLUGIN_TOKEN_<NAME>` environment). There is no
+viewer's `PLUGIN_TOKEN` / `MT_PLUGIN_TOKEN_<NAME>` environment). There is no
 TLS: use a VPN or Tailscale to reach the plugin across untrusted networks.
 
 The fake server (:8092) is the exception: it keeps listening on every interface
@@ -199,7 +199,7 @@ journalctl --user -u monkeytester-esp32-server -f
 ### Pointing MonkeyTester at it
 
 ```bash
-VT_PLUGINS=esp32-sensor=http://<plugin-host>:8091,esp32-server=http://<plugin-host>:8093
+MT_PLUGINS=esp32-sensor=http://<plugin-host>:8091,esp32-server=http://<plugin-host>:8093
 ```
 
 (`<plugin-host>` is `127.0.0.1` when the viewer runs on the same host, which is
@@ -234,14 +234,14 @@ In short:
 - **flash** takes a prebuilt ESP-IDF build directory — e.g. the `result/` of
   `nix build .#firmware-c3-release-test` in the server firmware.
 - **expect** is a relay on a board (the rule language belongs to the firmware,
-  its `docs/server-protocol.md` + `docs/vt-control.md`); on the fake
+  its `docs/server-protocol.md` + `docs/mt-control.md`); on the fake
   server the plugin applies the hub rule language itself.
 - **forget** makes the server (real or fake) drop one sensor from its registry
   and history, like `DELETE /devices/<mac>`.
 - **factory-reset** erases the registry, history and rules and reboots.
 
 Job outcomes follow the contract: `passed`; `failed` when the board rejected a
-rule or didn't answer over VT control; `timeout`; `error` when the plugin
+rule or didn't answer over MT control; `timeout`; `error` when the plugin
 itself couldn't do it (bad firmware dir, esptool failure, port gone).
 
 ## Layout
@@ -252,5 +252,5 @@ itself couldn't do it (bad firmware dir, esptool failure, port gone).
 | `security.py` | Bind/token policy and request-input validators (MAC, serial port, job/upload ids, contained paths); identical in both ESP32 plugin repos. See [SECURITY.md](SECURITY.md). |
 | `esp32_plugin.py` | Board discovery, role ownership, actions, flashing, the fake server, `main()` |
 | `fake_hub.py` | The fake server: hub HTTP API, registry/history, rule language, mDNS |
-| `board.py` | One board on one serial port: its transport (`port_kind`: UART bridge or native USB-Serial-JTAG), reader thread, VT control, reset |
+| `board.py` | One board on one serial port: its transport (`port_kind`: UART bridge or native USB-Serial-JTAG), reader thread, MT control, reset |
 | `tests/` | Contract and action tests with fake boards (`fake_board.py`) and the fake server; `test_hub.py` covers the server roles, the fake server and the split ownership |

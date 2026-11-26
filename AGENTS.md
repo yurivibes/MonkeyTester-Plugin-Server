@@ -3,7 +3,7 @@
 ## Purpose
 The `esp32-server` device plugin for MonkeyTester: owns the `role: hub`
 ("server") ESP32 boards on its host, flashes prebuilt firmware, drives them
-over the VT control serial protocol, and runs the fake software server (:8092,
+over the MT control serial protocol, and runs the fake software server (:8092,
 mDNS `tshub-fake`) while no hub board is attached. The server FIRMWARE is
 product code in its own repo, not here. The sibling esp32-sensor plugin
 owns the sensor boards. See README.md.
@@ -29,15 +29,15 @@ anything; that section is the single source for them. In short:
   job states or fields here without changing that document first (and bumping
   `contract_version` for breaking changes).
 - **The device protocol is owned by the firmware.** Board commands and the rule
-  language follow `docs/server-protocol.md` and `docs/vt-control.md` in the server firmware.
+  language follow `docs/server-protocol.md` and `docs/mt-control.md` in the server firmware.
   For boards, `expect` relays rule lines without interpreting them; don't add
   parsing or validation of board rules in the plugin.
 - **Sensor boards are never ours.** A node that answers `status` with `role: sensor`
-  (or never answers VT control — that counts as a sensor) is probed, dropped and
+  (or never answers MT control — that counts as a sensor) is probed, dropped and
   its console lock released so esp32-sensor adopts it. Hub actions (`forget`)
   and provisioning stay split: `ble-advertise`/`broadcast-ssid` belong to the
   sensor plugin — don't move them back. The lock dir and role cache defaults
-  (`/tmp/vt-esp32-locks`, `/tmp/vt-esp32-roles.json`) must match esp32-sensor's
+  (`/tmp/mt-esp32-locks`, `/tmp/mt-esp32-roles.json`) must match esp32-sensor's
   exactly: they are the cross-process protocol.
 - **The fake server (`fake_hub.py`) is the one protocol exception:** it
   implements server-protocol.md sections 1-4 and the server rule language itself.

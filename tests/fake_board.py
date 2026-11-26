@@ -1,8 +1,8 @@
-"""An in-memory stand-in for a serial port with VT-control firmware behind it.
+"""An in-memory stand-in for a serial port with MT-control firmware behind it.
 
 FakeSerial looks enough like pyserial's Serial for board.Board; the firmware side
-answers the VT control protocol (the sensor firmware's docs/vt-control.md) and prints
-the `@vt - ready` line on boot.
+answers the MT control protocol (the sensor firmware's docs/mt-control.md) and prints
+the `@mt - ready` line on boot.
 
 A USJ FakeSerial (kind `usb-serial-jtag`, or a ttyACM-style name) stands for a
 native USB-Serial-JTAG port: CDC-ACM, so DTR/RTS raise there and the only reset
@@ -26,10 +26,10 @@ class FakeFirmware:
     rejected; `report`/`temp` directives); "hub" = the hub board
     (the server firmware's docs/hub-protocol.md section 6)."""
 
-    def __init__(self, mac="7c:df:a1:a4:8f:44", vt=True, boot_delay=0.05,
+    def __init__(self, mac="7c:df:a1:a4:8f:44", mt=True, boot_delay=0.05,
                  ready_on_boot=True, transport="softap", role=None):
         self.mac = mac
-        self.vt = vt
+        self.mt = mt
         self.role = role
         self.sensors = set()  # hub: macs it knows
         # "softap" or "ble": the build's provisioning transport. None: firmware
@@ -88,14 +88,14 @@ class FakeFirmware:
             time.sleep(self.boot_delay)
             self.emit("ESP-ROM:esp32c3-api1-20210207")
             self.emit("\x1b[0;32mI (312) temp-sensor: test mode enabled\x1b[0m")
-            if self.vt and self.ready_on_boot:
-                self.emit("@vt - ready " + json.dumps(self.status()))
+            if self.mt and self.ready_on_boot:
+                self.emit("@mt - ready " + json.dumps(self.status()))
         threading.Thread(target=run, daemon=True).start()
 
     # -- device input --
     def on_line(self, line):
         self.received.append(line)
-        if not self.vt or self.silent or not line.startswith("@vt "):
+        if not self.mt or self.silent or not line.startswith("@mt "):
             return
         parts = line[4:].split()
         if len(parts) < 2:
@@ -104,14 +104,14 @@ class FakeFirmware:
         try:
             payload = self.handle(cmd, args)
         except ValueError as e:
-            self.emit(f"@vt {rid} err " + json.dumps({"error": str(e)}))
+            self.emit(f"@mt {rid} err " + json.dumps({"error": str(e)}))
             return
-        self.emit(f"@vt {rid} ok " + json.dumps(payload))
+        self.emit(f"@mt {rid} ok " + json.dumps(payload))
         if payload.get("rebooting"):
             self.boot()
 
     def add_rule(self, line):
-        """A small subset of the firmware's rule parser (docs/vt-control.md)."""
+        """A small subset of the firmware's rule parser (docs/mt-control.md)."""
         words = line.split()
         if len(words) == 2 and words[0] in ("wifi", "mqtt") and words[1] in ("on", "off"):
             setattr(self, words[0], words[1])

@@ -6,8 +6,8 @@
 # Edit WorkingDirectory to this checkout. The user must be in the `dialout`
 # group. Run the esp32-sensor unit alongside this one; the two plugins split
 # the boards by role and share the console locks (ESP32_LOCK_DIR, default
-# /tmp/vt-esp32-locks) and the role cache (ESP32_ROLE_CACHE, default
-# /tmp/vt-esp32-roles.json).
+# /tmp/mt-esp32-locks) and the role cache (ESP32_ROLE_CACHE, default
+# /tmp/mt-esp32-roles.json).
 [Unit]
 Description=MonkeyTester esp32-server device plugin (:8093, fake server :8092)
 After=network-online.target

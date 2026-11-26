@@ -118,7 +118,7 @@ class RoleTests(unittest.TestCase):
 
     def test_hub_board_reset_by_the_port_open_is_kept(self):
         """Opening a CP2102N port resets the board: the discovery `status` goes
-        out while it boots and is lost. Its `@vt - ready` line (role hub) must
+        out while it boots and is lost. Its `@mt - ready` line (role hub) must
         identify it; dropping it closed the port, the next rescan reopened it
         (another reset) and the board looped every rescan with the fake hub
         standing in."""
@@ -151,7 +151,7 @@ class RoleTests(unittest.TestCase):
         self.assertEqual(h.opens["/dev/fake0"], 1)
 
     def test_board_that_never_says_ready_is_still_dropped(self):
-        h = self.harness(roles=("hub",), vt=False)
+        h = self.harness(roles=("hub",), mt=False)
         time.sleep(esp32_plugin.IDENTIFY_READY_WAIT_S + 2)
         code, d = h.call("GET", "/devices")
         self.assertEqual(d["devices"], [])
@@ -319,7 +319,7 @@ class RealHubAndSensorTests(unittest.TestCase):
         self.sensor, self.hubfw = self.h.fws["/dev/fake0"], self.h.fws["/dev/fake1"]
 
     def sent(self, fw):
-        return [ln.split(" ", 2)[2] for ln in fw.received if ln.startswith("@vt p")]
+        return [ln.split(" ", 2)[2] for ln in fw.received if ln.startswith("@mt p")]
 
     def test_expect_on_the_hub_board_relays_rule_lines(self):
         job = self.h.run("expect", {"script": "GET /devices -> sequence 17 18\nPOST /report -> 500"},

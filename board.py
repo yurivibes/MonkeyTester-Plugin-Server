@@ -1,18 +1,18 @@
-"""One ESP32 board on a serial port, speaking the VT control protocol.
+"""One ESP32 board on a serial port, speaking the MT control protocol.
 
 The board object owns the port: a reader thread keeps it open, splits the
 stream into lines, publishes every line as a `serial` event, and routes
-`@vt <id> ok|err ...` replies to whoever sent the request. Flashing pauses the
+`@mt <id> ok|err ...` replies to whoever sent the request. Flashing pauses the
 reader so esptool can have the port.
 
 The protocol itself is specified in the sensor firmware's
-docs/vt-control.md.
+docs/mt-control.md.
 
 A board is reached over one of two transports (`port_kind`, see ACTIONS.md): the
 CP2102N UART bridge (`uart-bridge`, `/dev/ttyUSB…`) has a baud rate and an EN/RTS
 pin; the chip's own USB-Serial-JTAG interface (`usb-serial-jtag`, `/dev/ttyACM…`)
 is plain CDC-ACM: the baud rate means nothing there and there is no DTR/RTS to
-touch. Everything else (line splitting, VT routing) is the same.
+touch. Everything else (line splitting, MT routing) is the same.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ import serial  # pyserial
 
 from plugin_server import ActionError, ActionFailed, JobContext
 
-VT_PREFIX = "@vt "
+MT_PREFIX = "@mt "
 LINE_HISTORY = 2000
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -96,7 +96,7 @@ class Board:
         self.mac: str | None = mac          # status, or from the USB metadata at
         self.model: str | None = None       # discovery (its serial number)
         self.status: dict | None = None     # last status object seen
-        self.vt: bool | None = None         # firmware answers VT control?
+        self.mt: bool | None = None         # firmware answers MT control?
         self.last_ready_seq = 0
         self.error: str | None = None
         self.online = False
@@ -192,12 +192,12 @@ class Board:
             self._line_seq += 1
             seq = self._line_seq
             self._lines.append((seq, time.monotonic(), clean))
-            if clean.startswith(VT_PREFIX):
-                self._handle_vt(seq, clean[len(VT_PREFIX):])
+            if clean.startswith(MT_PREFIX):
+                self._handle_mt(seq, clean[len(MT_PREFIX):])
             self._cond.notify_all()
         self.events.publish(self.id, "serial", clean)
 
-    def _handle_vt(self, seq: int, rest: str) -> None:
+    def _handle_mt(self, seq: int, rest: str) -> None:
         # Called with self._cond held.
         parts = rest.split(" ", 2)
         if len(parts) < 2:
@@ -208,18 +208,18 @@ class Board:
             payload = json.loads(payload_raw) if payload_raw else {}
         except json.JSONDecodeError:
             payload = {"raw": payload_raw}
-        # Learn the status (and so the role) before `vt` is set: the plugin decides
-        # whether to run the fake hub once no board has `vt is None`.
+        # Learn the status (and so the role) before `mt` is set: the plugin decides
+        # whether to run the fake hub once no board has `mt is None`.
         if rid == "-":
             if kind == "ready":
                 self._learn(payload)
                 self.last_ready_seq = seq
-                self.vt = True
+                self.mt = True
             return
         if kind in ("ok", "err"):
             if kind == "ok" and isinstance(payload, dict) and "proto" in payload:
                 self._learn(payload)
-            self.vt = True
+            self.mt = True
             self._replies[rid] = VtReply(kind == "ok", payload)
 
     def _learn(self, payload) -> None:
@@ -239,7 +239,7 @@ class Board:
         with self._cond:
             return self._line_seq
 
-    # ───────────── writing / VT requests ─────────────
+    # ───────────── writing / MT requests ─────────────
 
     def write_line(self, line: str) -> None:
         data = (line + "\n").encode()
@@ -253,9 +253,9 @@ class Board:
                 raise ActionError(f"serial write failed: {e}", code="port_error") from None
 
     def request(self, ctx: JobContext | None, command: str, timeout: float = 3.0) -> VtReply:
-        """Send `@vt <id> <command>` and wait for its reply."""
+        """Send `@mt <id> <command>` and wait for its reply."""
         rid = f"p{next(self._ids)}"
-        line = f"@vt {rid} {command}"
+        line = f"@mt {rid} {command}"
         if ctx:
             ctx.log(f"-> {line}")
         self.write_line(line)
@@ -271,11 +271,11 @@ class Board:
                     if ctx:
                         ctx.check()
                     raise ActionFailed(f"no reply to {command!r} within {timeout:.1f}s "
-                                       "(firmware without VT_CONTROL?)", code="no_reply")
+                                       "(firmware without MT_CONTROL?)", code="no_reply")
                 self._cond.wait(min(left, 0.25))
             reply = self._replies.pop(rid)
         if ctx:
-            ctx.log(f"<- @vt {rid} {'ok' if reply.ok else 'err'} {json.dumps(reply.payload)}")
+            ctx.log(f"<- @mt {rid} {'ok' if reply.ok else 'err'} {json.dumps(reply.payload)}")
         return reply
 
     def command(self, ctx: JobContext | None, command: str, timeout: float = 3.0):
@@ -300,11 +300,11 @@ class Board:
             self._identify_running = False
 
     def wait_ready_status(self, timeout: float) -> bool:
-        """Wait until a `@vt - ready` line (or any status reply) has told us
+        """Wait until a `@mt - ready` line (or any status reply) has told us
         the board's status. True when it has, within `timeout` seconds."""
         end = time.monotonic() + timeout
         with self._cond:
-            while not (self.vt and self.status):
+            while not (self.mt and self.status):
                 left = end - time.monotonic()
                 if left <= 0:
                     return False
@@ -316,7 +316,7 @@ class Board:
         try:
             reply = self.request(None, "status", timeout)
         except (ActionFailed, ActionError):
-            self.vt = False if self.vt is None else self.vt
+            self.mt = False if self.mt is None else self.mt
             return False
         return reply.ok
 
@@ -358,7 +358,7 @@ class Board:
     @property
     def role(self) -> str:
         """`sensor` or `hub`, from the firmware's status. Firmware from before
-        roles (no `role` field) and boards that don't answer VT control count
+        roles (no `role` field) and boards that don't answer MT control count
         as sensors. `server` (the project's rename of "hub") is a status alias
         that normalizes to `hub`, which stays the wire value."""
         role = (self.status or {}).get("role")
@@ -375,7 +375,7 @@ class Board:
             state = "busy"
         else:
             state = "ready"
-        details = {"port": self.port, "port_kind": self.kind, "vt_control": self.vt,
+        details = {"port": self.port, "port_kind": self.kind, "mt_control": self.mt,
                    "role": self.role}
         if self.mac:
             details["mac"] = self.mac
