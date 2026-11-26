@@ -233,9 +233,9 @@ ESP32-SENSOR: ble-advertise seconds=0
 ESP32-SERVER: expect
   GET /devices -> sequence 17 18 19
 END
-VERIFY: The dashboard shows 17 °C
+AI: VERIFY The dashboard shows 17 °C
 ESP32-SERVER: forget mac=7c:df:a1:a4:8f:44
-VERIFY: The dashboard shows no sensors
+AI: VERIFY The dashboard shows no sensors
 ```
 
 ## What it does
