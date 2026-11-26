@@ -45,8 +45,14 @@ The sibling plugin is MonkeyTester-Plugin-Esp32 (`esp32-sensor`, :8091).
   (constant time). Wrong or missing → 401.
 - `GET /health` stays unauthenticated (the viewer's liveness check). It returns
   the contract, plugin name/version, device count, capabilities and the device
-  error string; the host name only to authenticated callers. It never returns
-  the token, the environment or configuration.
+  error string, plus `"docs": "/docs"` while README.md is readable; the host
+  name only to authenticated callers. It never returns the token, the
+  environment or configuration.
+- `GET /docs` (README.md rendered to HTML) is token-protected like the other
+  routes. The renderer (`docs_page.py`) escapes all raw HTML and keeps only
+  `http(s)`, `mailto:` and `#` links; the page is served with
+  `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; …`,
+  `X-Content-Type-Options: nosniff` and `Cache-Control: no-store`.
 - The viewer stores each plugin's token in **Settings → Device Plugins**
   (MonkeyTester PR in progress; until it lands the viewer still reads
   `PLUGIN_TOKEN` / `MT_PLUGIN_TOKEN_<NAME>` from its environment). The token is
