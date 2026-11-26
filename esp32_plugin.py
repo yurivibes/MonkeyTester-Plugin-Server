@@ -14,7 +14,7 @@ Boards are reached over one of two transports (board.py:port_kind): the CP2102N
 UART bridge (`uart-bridge`, /dev/ttyUSB*) — a real baud rate and an EN/RTS pin —
 or the chip's own USB-Serial-JTAG interface (`usb-serial-jtag`, /dev/ttyACM*):
 CDC-ACM with no baud rate, no RTS pin (esptool resets it), and a USB serial
-number that is the board's MAC, which identifies it before it answers VT
+number that is the board's MAC, which identifies it before it answers MT
 control. `GET /devices` reports `details.port_kind`.
 
 Environment:
@@ -36,8 +36,8 @@ Environment:
   ESP32_FIRMWARE_ROOTS extra directories (os.pathsep-separated) a firmware_dir
                      may point into; anything outside ESP32_FIRMWARE_ROOT, these,
                      the upload dir and /nix/store is refused
-  ESP32_READY_TIMEOUT_S  how long to wait for `@vt - ready` after a reset (default 20)
-  PLUGIN_UPLOAD_DIR  where POST /uploads unpacks zips (default: <tmp>/vt-plugin-uploads)
+  ESP32_READY_TIMEOUT_S  how long to wait for `@mt - ready` after a reset (default 20)
+  PLUGIN_UPLOAD_DIR  where POST /uploads unpacks zips (default: <tmp>/mt-plugin-uploads)
   ESP32_FAKE_HUB     auto | on | off: when `device=hub` uses the software fake hub
                      (default auto: only while no `role: hub` board is attached)
   ESP32_FAKE_HUB_PORT  fake hub HTTP port   (default 8092)
@@ -47,9 +47,9 @@ Environment:
   ESP32_FAKE_HUB_ADDR  IPv4 the fake hub advertises over mDNS and reports as its
                      `ip` (default: the address of the default-route interface)
   ESP32_LOCK_DIR     per-node console-lock files shared with the esp32-sensor
-                     plugin (default /tmp/vt-esp32-locks)
+                     plugin (default /tmp/mt-esp32-locks)
   ESP32_ROLE_CACHE   JSON {board key -> role} shared with the esp32-sensor
-                     plugin (default /tmp/vt-esp32-roles.json)
+                     plugin (default /tmp/mt-esp32-roles.json)
 """
 
 from __future__ import annotations
@@ -101,10 +101,10 @@ OTHER_BOARD_ROLES = ("sensor",)
 # sibling plugin and must be identical in both repos. Files are opened without
 # following symlinks (locks) or replaced atomically from a private temp file
 # (role cache); see SECURITY.md for the shared-/tmp caveat.
-LOCK_DIR_DEFAULT = "/tmp/vt-esp32-locks"  # nosec B108 - shared protocol path, see above
-ROLE_CACHE_DEFAULT = "/tmp/vt-esp32-roles.json"  # nosec B108 - shared protocol path
+LOCK_DIR_DEFAULT = "/tmp/mt-esp32-locks"  # nosec B108 - shared protocol path, see above
+ROLE_CACHE_DEFAULT = "/tmp/mt-esp32-roles.json"  # nosec B108 - shared protocol path
 # After a missed discovery probe: how long to wait for the board's
-# `@vt - ready` line (a port open resets a CP2102N board; it boots in <1 s).
+# `@mt - ready` line (a port open resets a CP2102N board; it boots in <1 s).
 IDENTIFY_READY_WAIT_S = 3.0
 _MAC_IN_NAME = re.compile(r"[0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5}")
 
@@ -182,7 +182,7 @@ def usb_mac(port: str) -> str | None:
     An ESP32's native USB-Serial-JTAG interface puts the board's MAC in its USB
     serial number (uppercase colon form, e.g. `AC:27:6E:FA:BB:5C`), and udev puts
     that serial number in the `/dev/serial/by-id/usb-…` name of the node — so the
-    board is identified at discovery, before it answers VT control. Other
+    board is identified at discovery, before it answers MT control. Other
     interfaces (the CP2102N bridge: its own serial, `68a5…`) don't, and those
     boards keep being identified by the firmware's `status` as before."""
     real = os.path.realpath(port)
@@ -467,7 +467,7 @@ class Esp32Plugin(Plugin):
         for b in list(self.boards()):
             if b.online and not b._paused.is_set():
                 self._cache_role(b)
-                if b.vt and not self._owns(b.role):
+                if b.mt and not self._owns(b.role):
                     # It answers status and says the other role: the firmware
                     # changed under us. Drop it; the other plugin adopts it.
                     b.stop()
@@ -478,7 +478,7 @@ class Esp32Plugin(Plugin):
             with self._lock:
                 known_board = self._boards.get(port)
             if known_board is not None:
-                # Not identified yet (booting, or flashed with non-VT firmware since)?
+                # Not identified yet (booting, or flashed with non-MT firmware since)?
                 # Ask again, unless a job owns the board.
                 if (known_board.mac is None and known_board.online
                         and not known_board._paused.is_set()
@@ -529,14 +529,14 @@ class Esp32Plugin(Plugin):
         owned = False
         # Opening a CP2102N port resets the board, so the first `status` often
         # goes out while it is still booting and gets no reply. The firmware's
-        # `@vt - ready` line (which carries the role) follows within a second:
+        # `@mt - ready` line (which carries the role) follows within a second:
         # take that as the answer instead of dropping the board, which would
         # close the port, reset the board again on the next rescan, and loop.
         if b.probe() or b.wait_ready_status(IDENTIFY_READY_WAIT_S):
             self._cache_role(b)
             owned = self._owns(b.role)
         if not owned:
-            # Sensor board — or a board that never answers VT control, which
+            # Sensor board — or a board that never answers MT control, which
             # counts as a sensor: give the console back; esp32-sensor adopts
             # it on its next rescan.
             b.stop()
@@ -548,7 +548,7 @@ class Esp32Plugin(Plugin):
             b.id = b.mac
         self.events.publish(b.id, "state", {"state": "ready", "port": b.port,
                                             "port_kind": b.kind,
-                                            "vt_control": True, "role": b.role})
+                                            "mt_control": True, "role": b.role})
         self.update_fake_hub()
 
     # ── the device node can move (native USB-Serial-JTAG) ─────────
@@ -695,7 +695,7 @@ class Esp32Plugin(Plugin):
     # ── the fake hub ──────────────────────────────────────────
 
     def _identifying(self) -> list:
-        return [b for b in self.boards() if b.online and b.vt is None]
+        return [b for b in self.boards() if b.online and b.mt is None]
 
     def update_fake_hub(self) -> None:
         """Start/stop the fake hub. `on`: always running. `auto`: running while no
@@ -859,20 +859,20 @@ class Esp32Plugin(Plugin):
             Action("flash",
                    "Write a prebuilt ESP-IDF firmware directory (containing flasher_args.json, "
                    "e.g. a Nix `result/` or `result/build`) to the board, then wait for the "
-                   "firmware's `@vt - ready` line.",
+                   "firmware's `@mt - ready` line.",
                    self.act_flash,
                    {"firmware_dir": Param("path", "build directory on the plugin host, "
                                           "or upload:<id>", required=True),
                     "erase": Param("bool", "erase the whole flash first (also clears NVS)",
                                    default=False),
-                    "wait_ready": Param("bool", "require the VT ready line after boot",
+                    "wait_ready": Param("bool", "require the MT ready line after boot",
                                         default=True),
                     "baud": Param("int", "esptool baud rate", default=None)},
                    default_timeout_ms=180_000),
             Action("reset", "Hard-reset the board through EN and wait until it is ready. "
                    "Clears every expectation.",
                    self.act_reset,
-                   {"wait_ready": Param("bool", "require the VT ready line", default=True)},
+                   {"wait_ready": Param("bool", "require the MT ready line", default=True)},
                    default_timeout_ms=30_000),
             Action("factory-reset",
                    "Put the board back to factory settings: forget the provisioned Wi-Fi "
@@ -884,7 +884,7 @@ class Esp32Plugin(Plugin):
                    "sent as a rule, on top of the rules already loaded (state only what "
                    "changes; `<METHOD> <path> -> normal` undoes one rule, `clear` undoes all). "
                    "The rule language is the firmware's (sensor firmware "
-                   "docs/vt-control.md, hub-protocol.md section 6): HTTP rules go to "
+                   "docs/mt-control.md, hub-protocol.md section 6): HTTP rules go to "
                    "device=hub (the fake hub applies them itself), `report`/`temp`/`wifi` "
                    "directives to the sensor. Blank and # lines are skipped. Stops at the "
                    "first line the device rejects.",
@@ -928,7 +928,7 @@ class Esp32Plugin(Plugin):
 
     def _wait_ready_line(self, ctx: JobContext, b: Board, since_seq: int,
                          probe_after: float | None = None) -> dict:
-        """Wait for `@vt - ready` after `since_seq`. With `probe_after`, a board that
+        """Wait for `@mt - ready` after `since_seq`. With `probe_after`, a board that
         answers `status` after that many seconds also counts: the ready line can
         be printed before the port is reopened after esptool's reset."""
         start = time.monotonic()
@@ -949,8 +949,8 @@ class Esp32Plugin(Plugin):
                         b.id = b.mac
                     return dict(reply.payload)
             if time.monotonic() > end:
-                raise ActionFailed("the board didn't print `@vt - ready` after boot "
-                                   "(crashed, or firmware built without VT_CONTROL)",
+                raise ActionFailed("the board didn't print `@mt - ready` after boot "
+                                   "(crashed, or firmware built without MT_CONTROL)",
                                    code="not_ready")
             time.sleep(0.05)
         ctx.log("board is ready")

@@ -10,7 +10,7 @@ This plugin owns the **`role: hub`** boards — the project calls them "server"
 boards (`docs/server-protocol.md` in the server firmware; the firmware's status field
 says `hub`, which stays the wire value and `server` is only a `device=` alias).
 Sensor boards belong to the esp32-sensor plugin: a node that answers `status`
-with `role: sensor` (or one that never answers VT control at all, which counts
+with `role: sensor` (or one that never answers MT control at all, which counts
 as a sensor) is probed, dropped and its console lock released so esp32-sensor
 adopts it; the shared role cache keeps the next scan from touching it.
 
@@ -39,7 +39,7 @@ reported as `details.port_kind`):
 | `uart-bridge` | `/dev/ttyUSB*` (macOS `cu.usbserial*`): the CP2102N adapter | a baud rate (`ESP32_BAUD`, `ESP32_FLASH_BAUD`) and an EN/RTS pin to pulse |
 | `usb-serial-jtag` | `/dev/ttyACM*` (macOS `cu.usbmodem*`): the chip's own interface | nothing to set (CDC-ACM ignores the baud rate and has no DTR/RTS, so the plugin touches neither), no pin to reset through, and a USB serial number that **is the board's MAC** |
 
-A native board is identified at discovery, before it answers VT control. It has
+A native board is identified at discovery, before it answers MT control. It has
 no reset button on the wire: `reset` runs esptool on that port, which ends with
 its own hard reset. esptool may make the kernel re-create the interface with
 another index, so the plugin re-enumerates the nodes after every esptool run
@@ -51,7 +51,7 @@ nothing there.
 
 When no hub board is attached, the plugin runs the server in software so app
 tests don't need a board. It implements the server firmware's `docs/server-protocol.md`
-sections 1-4 and the server rule language from `docs/vt-control.md`, on the
+sections 1-4 and the server rule language from `docs/mt-control.md`, on the
 plugin's host:
 
 - **HTTP** on `0.0.0.0:8092` (`ESP32_FAKE_HUB_PORT`, `ESP32_FAKE_HUB_BIND`; LAN on purpose, the sensor board connects over Wi-Fi; bodies over 4 KiB are a 413, see SECURITY.md):
@@ -84,8 +84,8 @@ Tests don't change between the fake server and a real hub board.
 
 | Action | Params | Passes when | Default timeout |
 |---|---|---|---|
-| `flash` | `firmware_dir` (path, required — e.g. `result/` of `nix build .#firmware-c3-release-test` in the server firmware; must be under `ESP32_FIRMWARE_ROOT`/`ESP32_FIRMWARE_ROOTS`/`/nix/store`, or `upload:<id>`, anything else is a 400, see SECURITY.md), `erase` (bool, false), `wait_ready` (bool, true), `baud` (int; ignored on a native port) | esptool succeeds and, with `wait_ready`, the board prints `@vt - ready` (or answers `status`) after reboot | 180 s |
-| `reset` | `wait_ready` (bool, true) | The board reboots — EN is pulsed through the adapter's RTS pin on a `uart-bridge` port, esptool's own hard reset on a native `usb-serial-jtag` one — and prints `@vt - ready`. A reboot drops every rule | 30 s |
+| `flash` | `firmware_dir` (path, required — e.g. `result/` of `nix build .#firmware-c3-release-test` in the server firmware; must be under `ESP32_FIRMWARE_ROOT`/`ESP32_FIRMWARE_ROOTS`/`/nix/store`, or `upload:<id>`, anything else is a 400, see SECURITY.md), `erase` (bool, false), `wait_ready` (bool, true), `baud` (int; ignored on a native port) | esptool succeeds and, with `wait_ready`, the board prints `@mt - ready` (or answers `status`) after reboot | 180 s |
+| `reset` | `wait_ready` (bool, true) | The board reboots — EN is pulsed through the adapter's RTS pin on a `uart-bridge` port, esptool's own hard reset on a native `usb-serial-jtag` one — and prints `@mt - ready`. A reboot drops every rule | 30 s |
 | `factory-reset` | — | The board forgets its build-time network state, reboots, and comes back ready with no rules (the fake server: registry, history and rules erased) | 30 s |
 | `expect` | `script` (string, required; the test's inline block) | The device accepted every rule line | 30 s |
 | `clear` | — | The device dropped every rule | 10 s |
@@ -125,8 +125,8 @@ END
 The test's inline block states **only what changes** in how the device answers
 the app. Everything not mentioned stays as it was. On a hub board the plugin
 doesn't interpret the rules: blank and `#` lines are dropped and each line goes
-out as `rule <line>` over the VT control protocol; the rule language belongs to
-the firmware (its `docs/server-protocol.md`, `docs/vt-control.md`: HTTP
+out as `rule <line>` over the MT control protocol; the rule language belongs to
+the firmware (its `docs/server-protocol.md`, `docs/mt-control.md`: HTTP
 responses with a status and body, `hang`, `delay`, `sequence`, `normal` to undo
 one rule). On the fake server the plugin applies the same rule language itself
 (`<METHOD> <path> -> <status> [<body>]`, `hang`, `delay <ms> <status> [<body>]`,
@@ -149,7 +149,7 @@ aren't sent.
 | Code | State | Meaning |
 |---|---|---|
 | `rule_rejected` | failed | The firmware rejected a rule line (`result.line`, `result.error`) |
-| `no_reply` | failed | No VT reply in time: hung firmware or a build without VT control |
+| `no_reply` | failed | No MT reply in time: hung firmware or a build without MT control |
 | `device_error` | failed | The firmware answered `err` to `clear`/`forget`, or the fake server doesn't know the MAC given to `forget` |
 | `unknown_device` | (HTTP 404 on `POST /jobs`) | `device=` matched nothing: no hub board and `ESP32_FAKE_HUB=off`, or an unknown MAC/port |
 | `unknown_action` | (HTTP 404 on `POST /jobs`) | Sensor-side actions (`ble-advertise`, `broadcast-ssid`) live in the esp32-sensor plugin |

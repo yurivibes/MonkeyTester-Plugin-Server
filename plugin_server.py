@@ -482,7 +482,7 @@ class Uploads:
     The root is created 0700 and must be a real directory owned by this user."""
 
     def __init__(self, root: str | None = None):
-        self.root = root or os.path.join(tempfile.gettempdir(), "vt-plugin-uploads")
+        self.root = root or os.path.join(tempfile.gettempdir(), "mt-plugin-uploads")
         os.makedirs(self.root, mode=0o700, exist_ok=True)
         st = os.lstat(self.root)
         if stat.S_ISLNK(st.st_mode) or not stat.S_ISDIR(st.st_mode):
@@ -614,7 +614,7 @@ def token_matches(expected: str | None, given: str | None) -> bool:
 
 def make_handler(plugin: Plugin, jobs: JobManager, token: str | None):
     class Handler(BaseHTTPRequestHandler):
-        server_version = f"vt-plugin-{plugin.name}/{plugin.version}"
+        server_version = f"mt-plugin-{plugin.name}/{plugin.version}"
         protocol_version = "HTTP/1.1"
         # Socket timeout per connection: a client that stops sending mid-request
         # frees its thread. Long-poll waits and SSE don't read the socket.

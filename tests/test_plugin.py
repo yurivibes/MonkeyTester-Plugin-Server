@@ -51,12 +51,12 @@ class Harness:
     macs: the firmware MACs, one per port (a board on its own USJ port reports
     the same MAC in its USB metadata)."""
 
-    def __init__(self, token=None, vt=True, ports=("/dev/fake0",), roles=None,
+    def __init__(self, token=None, mt=True, ports=("/dev/fake0",), roles=None,
                  fake_hub="off", transport="softap", macs=None, lock_dir="", role_cache="",
                  firmware_root=None):
         roles = roles or ("hub",) * len(ports)
         macs = macs or tuple(f"7c:df:a1:a4:8f:{i:02x}" for i in range(len(ports)))
-        self.fws = {p: FakeFirmware(mac=m, vt=vt, role=r, transport=transport)
+        self.fws = {p: FakeFirmware(mac=m, mt=mt, role=r, transport=transport)
                     for i, (p, r, m) in enumerate(zip(ports, roles, macs))}
         self.opens = {p: 0 for p in ports}
         self.fw_opens = {}  # per firmware: a USJ board's node index moves, its MAC does not
@@ -97,7 +97,7 @@ class Harness:
         self.token = token
         # Wait for discovery (status probe) to finish.
         end = time.time() + 5
-        while time.time() < end and any(b.vt is None for b in self.plugin.boards()):
+        while time.time() < end and any(b.mt is None for b in self.plugin.boards()):
             time.sleep(0.02)
         self.plugin.update_fake_hub()
 
@@ -184,7 +184,7 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(dev["id"], "7c:df:a1:a4:8f:00")
         self.assertEqual(dev["state"], "ready")
         self.assertEqual(dev["details"]["port"], "/dev/fake0")
-        self.assertTrue(dev["details"]["vt_control"])
+        self.assertTrue(dev["details"]["mt_control"])
 
     def test_actions_have_schemas(self):
         code, a = self.h.call("GET", "/actions")
@@ -313,7 +313,7 @@ class ActionTests(unittest.TestCase):
         job = self.h.run("expect", {"script": self.SCRIPT})
         self.assertEqual(job["state"], "passed", job)
         self.assertEqual(job["result"], {"rules": 2, "applied": 3})
-        sent = [l.split(" ", 2)[2] for l in self.fw.received if l.startswith("@vt p")]
+        sent = [l.split(" ", 2)[2] for l in self.fw.received if l.startswith("@mt p")]
         self.assertEqual(sent[-3:], [
             'rule GET /temperature.json -> 200 {"device":"{device}","temperature_c":0,'
             '"ok":false,"err":1}',
@@ -338,7 +338,7 @@ class ActionTests(unittest.TestCase):
     def test_sequence_rule_is_relayed_unchanged(self):
         job = self.h.run("expect", {"script": "GET /temperature.json -> sequence 17 18 19"})
         self.assertEqual(job["state"], "passed", job)
-        sent = [l.split(" ", 2)[2] for l in self.fw.received if l.startswith("@vt p")]
+        sent = [l.split(" ", 2)[2] for l in self.fw.received if l.startswith("@mt p")]
         self.assertEqual(sent[-1], "rule GET /temperature.json -> sequence 17 18 19")
         self.assertEqual(self.fw.rules, {("GET", "/temperature.json"): "sequence 17 18 19"})
         job = self.h.run("expect", {"script": "GET /temperature.json -> sequence 17 hot"})
@@ -438,8 +438,8 @@ class FlashTests(unittest.TestCase):
         # port came back
         self.assertEqual(self.h.run("clear")["state"], "passed")
 
-    def test_flash_non_vt_firmware_fails_ready_check(self):
-        self.h.fws["/dev/fake0"].vt = False
+    def test_flash_non_mt_firmware_fails_ready_check(self):
+        self.h.fws["/dev/fake0"].mt = False
         job = self.h.run("flash", {"firmware_dir": self.build}, timeout_ms=60000)
         self.assertEqual(job["state"], "failed")
         job = self.h.run("flash", {"firmware_dir": self.build, "wait_ready": False})

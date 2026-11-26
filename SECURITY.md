@@ -49,7 +49,7 @@ The sibling plugin is MonkeyTester-Plugin-Esp32 (`esp32-sensor`, :8091).
   the token, the environment or configuration.
 - The viewer stores each plugin's token in **Settings → Device Plugins**
   (MonkeyTester PR in progress; until it lands the viewer still reads
-  `PLUGIN_TOKEN` / `VT_PLUGIN_TOKEN_<NAME>` from its environment). The token is
+  `PLUGIN_TOKEN` / `MT_PLUGIN_TOKEN_<NAME>` from its environment). The token is
   stored in **plaintext at rest** on both sides (env/unit drop-in here, a 0600
   JSON file in the viewer).
 
@@ -122,8 +122,8 @@ address only with `ESP32_FAKE_HUB_BIND`.
 ## Shared `/tmp` files
 
 The board-ownership protocol with the sibling plugin uses fixed paths that must
-match in both repos: `/tmp/vt-esp32-locks` (lock dir, created `0700`) and
-`/tmp/vt-esp32-roles.json` (role cache). Lock files are opened with
+match in both repos: `/tmp/mt-esp32-locks` (lock dir, created `0700`) and
+`/tmp/mt-esp32-roles.json` (role cache). Lock files are opened with
 `O_NOFOLLOW` (`0600`); the cache is written to a private `mkstemp` file and
 renamed over the target, so a pre-planted symlink is never followed. Another
 local user could still pre-create those paths and disturb board ownership

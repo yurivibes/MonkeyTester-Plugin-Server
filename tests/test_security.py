@@ -414,9 +414,9 @@ class SharedTmpFileTests(unittest.TestCase):
 
     def test_shared_defaults_unchanged(self):
         # The cross-process protocol with the sibling plugin: must match exactly.
-        self.assertEqual(esp32_plugin.LOCK_DIR_DEFAULT, "/tmp/vt-esp32-locks")  # nosec B108
+        self.assertEqual(esp32_plugin.LOCK_DIR_DEFAULT, "/tmp/mt-esp32-locks")  # nosec B108
         self.assertEqual(esp32_plugin.ROLE_CACHE_DEFAULT,
-                         "/tmp/vt-esp32-roles.json")  # nosec B108
+                         "/tmp/mt-esp32-roles.json")  # nosec B108
 
 
 if __name__ == "__main__":
