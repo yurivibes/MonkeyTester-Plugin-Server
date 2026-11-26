@@ -207,7 +207,7 @@ class RoleTests(unittest.TestCase):
         self.assertEqual((code, r["code"]), (404, "unknown_device"))
         self.assertIn("ESP32_FAKE_HUB=off", r["error"])
         code, d = h.call("GET", "/devices")
-        self.assertEqual(d["devices"], [])  # sensor boards belong to esp32-sensor
+        self.assertEqual(d["devices"], [])  # sensor boards belong to ESP32-SENSOR
 
     def test_bad_mode_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -300,7 +300,7 @@ class FakeHubActionTests(unittest.TestCase):
 
     def test_spec_section_7_example(self):
         """hub-protocol.md section 7 (server side): the sensor provisioning
-        happens at the esp32-sensor plugin; here the hub is mocked and the
+        happens at the ESP32-SENSOR plugin; here the hub is mocked and the
         sensor's report lands in its registry."""
         self.assertEqual(self.h.run("factory-reset", device="hub")["state"], "passed")
         # …the app provisioned the sensor via the other plugin; it reports…
@@ -343,7 +343,7 @@ class RealHubAndSensorTests(unittest.TestCase):
         self.assertEqual(self.hubfw.sensors, set())
 
     def test_sensor_actions_are_not_exposed_here(self):
-        """The provisioning actions live in the esp32-sensor plugin."""
+        """The provisioning actions live in the ESP32-SENSOR plugin."""
         for action in ("ble-advertise", "broadcast-ssid"):
             code, r = self.h.call("POST", "/jobs", {"action": action, "device": "hub"})
             self.assertEqual((code, r["code"]), (404, "unknown_action"))

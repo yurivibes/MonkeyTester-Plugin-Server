@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""MonkeyTester-Plugin-Server: the `esp32-server` device plugin for MonkeyTester.
+"""MonkeyTester-Plugin-Server: the `ESP32-SERVER` device plugin for MonkeyTester.
 
 Owns the `role: hub` ESP32 boards attached to this host — the project's "server"
 boards — and runs the fake software server: a software hub (HTTP API on :8092,
 registry, history, rule language, mDNS `tshub-fake`) while no hub board is
-attached. The `role: sensor` boards belong to the sibling esp32-sensor plugin
+attached. The `role: sensor` boards belong to the sibling ESP32-SENSOR plugin
 (MonkeyTester-Plugin-Esp32), never to this one: a node that answers `status`
 with the sensor role is probed, dropped and its console lock released, so the
 other plugin adopts it; the shared role cache lets this plugin skip such a node
@@ -46,9 +46,9 @@ Environment:
                      endpoint with no file, flash or subprocess access)
   ESP32_FAKE_HUB_ADDR  IPv4 the fake hub advertises over mDNS and reports as its
                      `ip` (default: the address of the default-route interface)
-  ESP32_LOCK_DIR     per-node console-lock files shared with the esp32-sensor
+  ESP32_LOCK_DIR     per-node console-lock files shared with the ESP32-SENSOR
                      plugin (default /tmp/mt-esp32-locks)
-  ESP32_ROLE_CACHE   JSON {board key -> role} shared with the esp32-sensor
+  ESP32_ROLE_CACHE   JSON {board key -> role} shared with the ESP32-SENSOR
                      plugin (default /tmp/mt-esp32-roles.json)
 """
 
@@ -90,11 +90,11 @@ FAKE_HUB_MODES = ("auto", "on", "off")
 IDENTIFY_WAIT_S = 3.0
 # A native USB-Serial-JTAG node vanishes and comes back after a chip reset.
 USJ_REAPPEAR_S = float(os.environ.get("ESP32_USJ_REAPPEAR_S", "10"))
-PLUGIN_NAME = "esp32-server"
+PLUGIN_NAME = "ESP32-SERVER"
 PLUGIN_DEFAULT_PORT = 8093
 # The board roles this plugin owns. The firmware's status field says `hub`,
 # which stays the wire value; `server` is a `device=` alias. Sensor boards
-# belong to the sibling esp32-sensor plugin, never to this one.
+# belong to the sibling ESP32-SENSOR plugin, never to this one.
 OWNED_BOARD_ROLES = ("hub", "server")
 OTHER_BOARD_ROLES = ("sensor",)
 # Fixed /tmp paths on purpose: they are the cross-process protocol with the
@@ -367,9 +367,9 @@ def run_tool(ctx: JobContext, argv: list) -> tuple[int, str]:
 
 
 class Esp32Plugin(Plugin):
-    """The `esp32-server` plugin: owns the `role: hub` boards ("server" boards)
+    """The `ESP32-SERVER` plugin: owns the `role: hub` boards ("server" boards)
     and the fake software server. Sensor boards belong to the sibling
-    esp32-sensor plugin."""
+    ESP32-SENSOR plugin."""
     name = PLUGIN_NAME
     version = VERSION
     capabilities = ["events", "uploads"]
@@ -391,7 +391,7 @@ class Esp32Plugin(Plugin):
         self._lock = threading.Lock()
         self._error = None
         self.jobs = None  # set by main() / tests, to report `busy`
-        # Cross-process board ownership (shared with esp32-sensor): that plugin
+        # Cross-process board ownership (shared with ESP32-SENSOR): that plugin
         # must never open this plugin's boards' consoles (two reader threads on
         # one tty shred each other's bytes). A per-node flock says which plugin
         # has a console; the role cache lets this plugin skip a node whose role
@@ -537,7 +537,7 @@ class Esp32Plugin(Plugin):
             owned = self._owns(b.role)
         if not owned:
             # Sensor board — or a board that never answers MT control, which
-            # counts as a sensor: give the console back; esp32-sensor adopts
+            # counts as a sensor: give the console back; ESP32-SENSOR adopts
             # it on its next rescan.
             b.stop()
             self._drop_lock(b.port)
@@ -582,7 +582,7 @@ class Esp32Plugin(Plugin):
             return b
         return None
 
-    # ── cross-process board ownership (shared with esp32-sensor) ─
+    # ── cross-process board ownership (shared with ESP32-SENSOR) ─
 
     def _owns(self, role: str) -> bool:
         return role in OWNED_BOARD_ROLES
@@ -741,7 +741,7 @@ class Esp32Plugin(Plugin):
         if self.fake_hub is not None:
             self.fake_hub.stop()  # unregister the fake server's mDNS name
         for port in list(self._port_locks):
-            self._drop_lock(port)  # give the boards back to esp32-sensor
+            self._drop_lock(port)  # give the boards back to ESP32-SENSOR
 
     def _rescan_loop(self) -> None:
         while True:
@@ -782,7 +782,7 @@ class Esp32Plugin(Plugin):
     def resolve_device(self, ref):
         """`device=` is a MAC (or serial port), `hub`/`server` or omitted: this
         plugin only owns hub/server boards and the fake server; sensor boards
-        belong to the esp32-sensor plugin."""
+        belong to the ESP32-SENSOR plugin."""
         try:
             ref = security.check_device_ref(
                 ref, [b.port for b in self.boards()] + [FAKE_HUB_ID])
@@ -793,7 +793,7 @@ class Esp32Plugin(Plugin):
             return self._resolve_hub()
         if ref == "sensor":
             raise HttpError(404, "wrong_plugin",
-                            "sensor boards belong to the esp32-sensor plugin; "
+                            "sensor boards belong to the ESP32-SENSOR plugin; "
                             "this plugin only owns hub/server boards and the fake server")
         hub = self.fake_hub
         if hub is not None and isinstance(ref, str) and ref.lower() in (hub.id, hub.mac):

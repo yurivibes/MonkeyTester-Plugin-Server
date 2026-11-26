@@ -1,11 +1,11 @@
 # MonkeyTester-Plugin-Server — Agent Guide
 
 ## Purpose
-The `esp32-server` device plugin for MonkeyTester: owns the `role: hub`
+The `ESP32-SERVER` device plugin for MonkeyTester: owns the `role: hub`
 ("server") ESP32 boards on its host, flashes prebuilt firmware, drives them
 over the MT control serial protocol, and runs the fake software server (:8092,
 mDNS `tshub-fake`) while no hub board is attached. The server FIRMWARE is
-product code in its own repo, not here. The sibling esp32-sensor plugin
+product code in its own repo, not here. The sibling ESP32-SENSOR plugin
 owns the sensor boards. See README.md.
 
 ## Setup (do this first)
@@ -34,10 +34,10 @@ anything; that section is the single source for them. In short:
   parsing or validation of board rules in the plugin.
 - **Sensor boards are never ours.** A node that answers `status` with `role: sensor`
   (or never answers MT control — that counts as a sensor) is probed, dropped and
-  its console lock released so esp32-sensor adopts it. Hub actions (`forget`)
+  its console lock released so ESP32-SENSOR adopts it. Hub actions (`forget`)
   and provisioning stay split: `ble-advertise`/`broadcast-ssid` belong to the
   sensor plugin — don't move them back. The lock dir and role cache defaults
-  (`/tmp/mt-esp32-locks`, `/tmp/mt-esp32-roles.json`) must match esp32-sensor's
+  (`/tmp/mt-esp32-locks`, `/tmp/mt-esp32-roles.json`) must match ESP32-SENSOR's
   exactly: they are the cross-process protocol.
 - **The fake server (`fake_hub.py`) is the one protocol exception:** it
   implements server-protocol.md sections 1-4 and the server rule language itself.
@@ -62,8 +62,8 @@ anything; that section is the single source for them. In short:
   when it changes what a person running the plugin by hand does or sees: how to
   install, start, stop or restart it (systemd unit, LaunchAgent, `nix run`),
   ports (8093 here, fake server 8092, mDNS `tshub-fake`), environment variables, board discovery and serial-port
-  handling, the curl/HTTP commands in README.md, test step syntax (`PLUGIN:
-  esp32-server …`), or required packages/groups (`dialout`). For every such
+  handling, the curl/HTTP commands in README.md, test step syntax (`ESP32-SERVER:
+  …`), or required packages/groups (`dialout`). For every such
   change:
   - update README.md (and ACTIONS.md for actions) **in the same PR**; the README
     commands must work as written;
