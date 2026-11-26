@@ -1,6 +1,6 @@
 # MonkeyTester-Plugin-Server
 
-The `esp32-server` device plugin for
+The `ESP32-SERVER` device plugin for
 MonkeyTester. It owns
 the **`role: hub`** ESP32 boards plugged into its host — the project's "server"
 boards — drives them over the MT control serial protocol, and runs the **fake
@@ -14,7 +14,7 @@ with this plugin's `flash` action.
 
 The `role: sensor` boards belong to the sibling
 MonkeyTester-Plugin-Esp32
-plugin (`esp32-sensor`, :8091), never to this one: a node that answers
+plugin (`ESP32-SENSOR`, :8091), never to this one: a node that answers
 `status` with the sensor role is probed, dropped and its console lock
 released, so the other plugin adopts it; the shared role cache keeps this
 plugin from touching such a node again. Both plugins split the boards through
@@ -130,13 +130,13 @@ the LAN (phones and real sensors connect to it): open TCP 8092 and mDNS (UDP
 Every environment variable is listed at the top of `esp32_plugin.py`, including
 `ESP32_LOCK_DIR` (default `/tmp/mt-esp32-locks`) and `ESP32_ROLE_CACHE`
 (default `/tmp/mt-esp32-roles.json`) — the board-ownership files **shared**
-with the esp32-sensor plugin: keep both plugins' settings of them in sync.
+with the ESP32-SENSOR plugin: keep both plugins' settings of them in sync.
 
 ### Network access and the token
 
 The plugin API listens on **127.0.0.1 only** by default (`PLUGIN_BIND`), which is
 all the viewer needs when it runs on the same host (it reaches the plugin at
-`http://127.0.0.1:8093`). The sibling esp32-sensor plugin has the same defaults.
+`http://127.0.0.1:8093`). The sibling ESP32-SENSOR plugin has the same defaults.
 
 To reach the plugin from another machine, bind it to a LAN address **and** set a
 token, or it refuses to start (exit code 2, with the reason on stderr):
@@ -162,7 +162,7 @@ needs the token like every route except `/health`. `GET /health` reports
 `"docs": "/docs"` while README.md is readable next to `plugin_server.py`, and
 leaves the field out otherwise (`/docs` then answers 404). The viewer's
 **/plugins** page shows a **Documentation** link for a plugin that reports
-`docs` and fetches the page itself, through its `/plugins/docs/esp32-server`
+`docs` and fetches the page itself, through its `/plugins/docs/ESP32-SERVER`
 route with the saved token, so the browser never talks to the plugin. Try it
 with `curl -s localhost:8093/docs`. `nix run` and the systemd/launchd units
 run from the repo source, so README.md always ships with them.
@@ -181,7 +181,7 @@ symlinks out of those roots are refused. Details and limits: [SECURITY.md](SECUR
 
 To keep it running: `packaging/systemd/monkeytester-esp32-server.service`
 (Linux, user unit) or `packaging/launchd/com.blackjackfruit.monkeytester-esp32-server.plist`
-(macOS LaunchAgent). Run the esp32-sensor plugin's unit alongside; the split
+(macOS LaunchAgent). Run the ESP32-SENSOR plugin's unit alongside; the split
 happens by itself through the lock files and role cache.
 
 ### Start and stop
@@ -212,25 +212,30 @@ journalctl --user -u monkeytester-esp32-server -f
 ### Pointing MonkeyTester at it
 
 ```bash
-MT_PLUGINS=esp32-sensor=http://<plugin-host>:8091,esp32-server=http://<plugin-host>:8093
+MT_PLUGINS=ESP32-SENSOR=http://<plugin-host>:8091,ESP32-SERVER=http://<plugin-host>:8093
 ```
 
 (`<plugin-host>` is `127.0.0.1` when the viewer runs on the same host, which is
 the default setup; anything else needs `PLUGIN_BIND` + `PLUGIN_TOKEN` as above.)
 
+Plugin names are always uppercase: this plugin reports `ESP32-SERVER` in `/health`
+`plugin.name`, and the viewer rejects lowercase names. A test step's command
+is the plugin name, like a built-in verb: `ESP32-SERVER: <action> [key=value …]`
+(the old `PLUGIN: <name> <action>` form is a parse error).
+
 and, in a test (server steps hit this plugin; sensor steps hit the other one):
 
 ```
-PLUGIN: esp32-server factory-reset
-PLUGIN: esp32-sensor factory-reset
-PLUGIN: esp32-sensor ble-advertise seconds=0
+ESP32-SERVER: factory-reset
+ESP32-SENSOR: factory-reset
+ESP32-SENSOR: ble-advertise seconds=0
 # … the app provisions the sensor over BLE (BJF-<mac>); it reports to the server …
-PLUGIN: esp32-server expect
+ESP32-SERVER: expect
   GET /devices -> sequence 17 18 19
 END
-VERIFY: The dashboard shows 17 °C
-PLUGIN: esp32-server forget mac=7c:df:a1:a4:8f:44
-VERIFY: The dashboard shows no sensors
+AI: VERIFY The dashboard shows 17 °C
+ESP32-SERVER: forget mac=7c:df:a1:a4:8f:44
+AI: VERIFY The dashboard shows no sensors
 ```
 
 ## What it does

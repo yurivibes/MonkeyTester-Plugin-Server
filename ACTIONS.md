@@ -1,4 +1,4 @@
-# esp32-server plugin actions
+# ESP32-SERVER plugin actions
 
 Every action runs as a job (`POST /jobs`, then `GET /jobs/<id>?wait=…`; see
 `PLUGIN_API.md` in MonkeyTester). `GET /actions` returns the same list with full
@@ -9,9 +9,9 @@ parameter schemas.
 This plugin owns the **`role: hub`** boards — the project calls them "server"
 boards (`docs/server-protocol.md` in the server firmware; the firmware's status field
 says `hub`, which stays the wire value and `server` is only a `device=` alias).
-Sensor boards belong to the esp32-sensor plugin: a node that answers `status`
+Sensor boards belong to the ESP32-SENSOR plugin: a node that answers `status`
 with `role: sensor` (or one that never answers MT control at all, which counts
-as a sensor) is probed, dropped and its console lock released so esp32-sensor
+as a sensor) is probed, dropped and its console lock released so ESP32-SENSOR
 adopts it; the shared role cache keeps the next scan from touching it.
 
 `device=` in a test step (the job's `device`) is one of:
@@ -19,7 +19,7 @@ adopts it; the shared role cache keeps the next scan from touching it.
 | Value | Resolves to |
 |---|---|
 | omitted, or `hub`/`server` | The one attached hub board; when none is attached, the plugin's **fake server** (see below), depending on `ESP32_FAKE_HUB`. Fails (`bad_request`, 400) when there are several: then pass the MAC |
-| `sensor` | `wrong_plugin` (404): sensor boards belong to the esp32-sensor plugin |
+| `sensor` | `wrong_plugin` (404): sensor boards belong to the ESP32-SENSOR plugin |
 | a MAC, or a serial port | That board; `tshub-fake` (or the fake server's MAC `02:00:00:fa:4e:01`) is the fake server |
 
 `GET /devices` lists every owned board with `details.role`, `details.port` (the
@@ -102,7 +102,7 @@ What each action does per device:
 | `forget` | relays `forget <mac>` | forgets the sensor; `device_error` if unknown |
 
 The provisioning actions (`ble-advertise`, `broadcast-ssid`) live in the
-esp32-sensor plugin; asking for one here fails with `unknown_action`.
+ESP32-SENSOR plugin; asking for one here fails with `unknown_action`.
 
 ## Starting a test
 
@@ -110,12 +110,12 @@ Start every app test from factory settings — server side here, sensor side at
 the other plugin — then let the app find the sensor:
 
 ```
-PLUGIN: esp32-server factory-reset
-PLUGIN: esp32-sensor factory-reset
-PLUGIN: esp32-sensor ble-advertise seconds=0
+ESP32-SERVER: factory-reset
+ESP32-SENSOR: factory-reset
+ESP32-SENSOR: ble-advertise seconds=0
 # …the app finds BLE device BJF-<mac> and provisions the sensor; the sensor
 # reports to the server (the fake one when no hub board is attached)…
-PLUGIN: esp32-server expect
+ESP32-SERVER: expect
   GET /devices -> sequence 17 18 19
 END
 ```
@@ -135,7 +135,7 @@ one rule). On the fake server the plugin applies the same rule language itself
 request up to 120 s; a rule for `POST /report` replaces the real handler).
 
 Sensor directives (`report on|off`, `temp …`, `wifi`/`mqtt`) belong to sensor
-boards at the esp32-sensor plugin; a hub board rejects them.
+boards at the ESP32-SENSOR plugin; a hub board rejects them.
 
 Rules stay on the board until `clear`, a `reset`, or a reflash. If the device
 rejects a line, the job fails with `rule_rejected`; `result.line` says which
@@ -152,8 +152,8 @@ aren't sent.
 | `no_reply` | failed | No MT reply in time: hung firmware or a build without MT control |
 | `device_error` | failed | The firmware answered `err` to `clear`/`forget`, or the fake server doesn't know the MAC given to `forget` |
 | `unknown_device` | (HTTP 404 on `POST /jobs`) | `device=` matched nothing: no hub board and `ESP32_FAKE_HUB=off`, or an unknown MAC/port |
-| `unknown_action` | (HTTP 404 on `POST /jobs`) | Sensor-side actions (`ble-advertise`, `broadcast-ssid`) live in the esp32-sensor plugin |
-| `wrong_plugin` | (HTTP 404 on `POST /jobs`) | `device=sensor`: belongs to the esp32-sensor plugin |
+| `unknown_action` | (HTTP 404 on `POST /jobs`) | Sensor-side actions (`ble-advertise`, `broadcast-ssid`) live in the ESP32-SENSOR plugin |
+| `wrong_plugin` | (HTTP 404 on `POST /jobs`) | `device=sensor`: belongs to the ESP32-SENSOR plugin |
 | `bad_request` | error | `script` has no rule lines; `forget` got a malformed `mac` |
 | `unsupported` | error | `flash` or `reset` on the fake server |
 | `bad_firmware` | error | `firmware_dir` has no usable `flasher_args.json` or images |

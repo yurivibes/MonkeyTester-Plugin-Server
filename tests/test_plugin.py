@@ -175,7 +175,7 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertEqual(h["contract"], "monkeytester-plugin")
         self.assertEqual(h["contract_version"], 1)
-        self.assertEqual(h["plugin"]["name"], "esp32-server")
+        self.assertEqual(h["plugin"]["name"], "ESP32-SERVER")
         self.assertEqual(h["devices"], 1)
         self.assertIn("events", h["capabilities"])
 
@@ -319,7 +319,7 @@ class DocsTests(unittest.TestCase):
         self.assertEqual(headers["Cache-Control"], "no-store")
         page = body.decode("utf-8")
         self.assertIn('<h1 id="monkeytester-plugin-server">MonkeyTester-Plugin-Server</h1>', page)
-        self.assertIn("esp32-server", page)
+        self.assertIn("ESP32-SERVER", page)
 
     def test_health_advertises_docs(self):
         h = Harness()
